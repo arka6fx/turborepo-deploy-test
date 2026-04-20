@@ -22,7 +22,7 @@ jobs:
             export PATH="$PNPM_HOME:$PATH"
 
             cd ~/turborepo-deploy-test
-            git pull
+            git pull origin main
             pnpm install
             pnpm build
             pm2 restart fe-server
