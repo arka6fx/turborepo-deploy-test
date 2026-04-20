@@ -5,14 +5,22 @@ on:
       - "main"
 jobs:
   redeploy_everything:
-    name: "Deploying everything to the staging cluster"
+    name: Deploying everything to the staging cluster
     runs-on: ubuntu-latest
+
     steps:
-      - name: SSH into server
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/ssh_key
-          chmod 600 ~/ssh_key
-          ssh -o StrictHostKeyChecking=no -i ~/ssh_key ubuntu@18.60.117.252 << 'EOF'
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            export PNPM_HOME="$HOME/.local/share/pnpm"
+            export PATH="$PNPM_HOME:$PATH"
+
             cd ~/turborepo-deploy-test
             git pull
             pnpm install
@@ -20,4 +28,3 @@ jobs:
             pm2 restart fe-server
             pm2 restart http-server
             pm2 restart ws-server
-          EOF
