@@ -1,0 +1,33 @@
+name: Deploy to production
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  redeploy_everything:
+    name: Deploying everything to the production cluster
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            export PNPM_HOME="$HOME/.local/share/pnpm"
+            export PATH="$PNPM_HOME:$PATH"
+
+            cd ~/turborepo-deploy-test
+            git checkout production
+            git pull origin production
+            pnpm install
+            pnpm build
+            pm2 restart fe-server
+            pm2 restart http-server
+            pm2 restart ws-server
