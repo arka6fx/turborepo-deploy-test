@@ -2,6 +2,124 @@
 
 This Turborepo starter is maintained by the Turborepo core team.
 
+## Deployment runbook (staging + production)
+
+This is the exact sequence used to deploy this project with two EC2 machines (`dev` and `prod`), Nginx reverse proxy, PM2 process management, and GitHub Actions CD.
+
+### 1) Provision servers
+
+- Create two Ubuntu EC2 instances: one for staging/dev and one for production.
+- Save each instance public IPv4 (or public DNS).
+- SSH user for Ubuntu AMIs is usually `ubuntu`.
+
+### 2) SSH access
+
+- Connect with your key:
+
+```sh
+ssh -i /path/to/key ubuntu@<SERVER_IP>
+```
+
+- If `root` login is blocked, use `ubuntu`.
+
+### 3) Install Node, pnpm, pm2, nginx
+
+- Install Node via `nvm`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc
+nvm install --lts
+```
+
+- Install pnpm and pm2:
+
+```sh
+npm install -g pnpm
+pnpm add -g pm2
+```
+
+- Install Nginx:
+
+```sh
+sudo apt update && sudo apt install -y nginx
+sudo systemctl enable --now nginx
+```
+
+### 4) Common Prisma fix
+
+If Prisma fails with `Cannot find module 'dotenv/config'`, install `dotenv` in the correct workspace/package:
+
+```sh
+pnpm add dotenv
+```
+
+### 5) Run services with PM2
+
+Start apps with pnpm using PM2 process names:
+
+```sh
+pm2 start pnpm --name "fe-server" -- start
+pm2 start pnpm --name "http-server" -- start
+pm2 start pnpm --name "ws-server" -- start
+```
+
+### 6) DNS records
+
+Create A records that point to the target instance IP.
+
+- Staging examples: `staging.fe.arka6fx.com`, `staging.httpserver.arka6fx.com`, `staging.wsserver.arka6fx.com`
+- Production examples: `fe.arka6fx.com`, `httpserver.arka6fx.com`, `wsserver.arka6fx.com`
+
+### 7) Nginx reverse proxy
+
+For Ubuntu site files (`/etc/nginx/sites-available/*`), keep only `server {}` blocks (do not include `events {}` and `http {}` in site files).
+
+Example mapping:
+
+- `fe.*` -> `http://localhost:3000`
+- `httpserver.*` -> `http://localhost:3001`
+- `wsserver.*` -> `http://localhost:3002`
+
+Validate and reload:
+
+```sh
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 8) GitHub Actions CD setup
+
+- Staging workflow file: `.github/workflows/cd_staging.yml`
+  - Trigger: push to `main`
+- Production workflow file: `.github/workflows/cd_prod.yml`
+  - Trigger: push to `production`
+
+Both workflows use `appleboy/ssh-action` and run:
+
+```sh
+cd ~/turborepo-deploy-test
+git pull
+pnpm install
+pnpm build
+pm2 restart fe-server
+pm2 restart http-server
+pm2 restart ws-server
+```
+
+### 9) Required GitHub repository secrets
+
+- `SSH_PRIVATE_KEY`: private key content used for SSH
+- `STAGING_HOST`: staging EC2 public IP/DNS
+- `STAGING_USER`: staging SSH user (usually `ubuntu`)
+- `PROD_HOST`: production EC2 public IP/DNS
+- `PROD_USER`: production SSH user (usually `ubuntu`)
+
+### 10) Branch behavior
+
+- A workflow must exist in the branch it triggers from.
+- Keep deployment workflow files present in both long-lived branches (`main` and `production`) as needed.
+- Keep infra config (like Nginx templates) versioned so environments are reproducible.
+
 ## Using this example
 
 Run the following command:
