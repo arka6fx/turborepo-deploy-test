@@ -2,19 +2,17 @@ name: Deploy to staging
 on:
   push:
     branches:
-      - main
+      - "main"
 jobs:
   redeploy_everything:
-    name: Deploying everything to the staging cluster
+    name: "Deploying everything to the staging cluster"
     runs-on: ubuntu-latest
     steps:
-      - name: Setup SSH key
+      - name: SSH into server
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/ssh_key
           chmod 600 ~/ssh_key
-      - name: Deploy over SSH
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/ssh_key root@18.60.117.252 << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/ssh_key ubuntu@18.60.117.252 << 'EOF'
             cd ~/turborepo-deploy-test
             git pull
             pnpm install
