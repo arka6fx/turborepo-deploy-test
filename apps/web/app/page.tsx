@@ -12,7 +12,7 @@ export default async function Home() {
         <main className="grid min-h-screen place-items-center bg-gradient-to-br from-cyan-100 via-slate-100 to-indigo-100 p-6 font-mono">
             <div className="w-full max-w-xl rounded-3xl border border-white/70 bg-white/80 p-8 shadow-2xl shadow-slate-300/50 backdrop-blur md:p-10">
                 <p className="mb-4 inline-block rounded-full bg-slate-200 px-3 py-1 text-xs font-bold uppercase tracking-widest text-slate-700">
-                    [[WS + Prisma Demo + http]]
+                    WS + Prisma Demo + http
                 </p>
                 <h1 className="mb-2 text-4xl font-black tracking-tight text-slate-900">
                     User Credentials
